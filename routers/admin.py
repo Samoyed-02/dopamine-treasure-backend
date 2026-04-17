@@ -56,8 +56,8 @@ def admin_treasures(page: int = 1, status: Optional[str] = None, db: Session = D
             "status": t.status,
             "image_path": t.image_path,
             "claimed_count": claimed_count,
-            "locoation_name": location.name if location else None,
-            "mission_content": location.mission_content if location else None,
+            "location_name": location.name if location else None,
+            "mission_content": t.mission_content if location else None,
             "mission_answer": t.mission_answer
         })
     
@@ -112,9 +112,6 @@ def approve_attempt(attempt_id: int, request: attempt_schemas.AttemptApprove, db
 @router.patch("/admin/locations/{location_id}")
 def fix_location(location_id: int, request: schemas.LocationUpdate, db: Session = Depends(get_db)):
     location = db.query(models.Location).filter(models.Location.id == location_id).first()
-
-    location.mission_content = request.mission_content
-    location.mission_answer = request.mission_answer
 
     db.commit()
     db.refresh(location)

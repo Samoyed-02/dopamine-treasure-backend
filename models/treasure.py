@@ -18,3 +18,6 @@ class Treasure(Base):
     status = Column(String(20), default="pending")
     claimed_by = Column(String(100), nullable=True)   # 획득자 학번
     claimed_at = Column(DateTime, nullable=True)       # 획득 시간
+    mission_content = Column(String(500))
+    mission_answer = Column(String(100))
+    mission_type = Column(String(20))  # "quiz" or "photo"

@@ -21,6 +21,8 @@ async def create_treasure(
     department: str,
     location_id: int,
     treasure_type: str,
+    mission_type: str,
+    mission_content: str,
     content: Optional[str] = None,
     mission_answer: Optional[str] = None,
     db: Session = Depends(get_db),
@@ -46,6 +48,8 @@ async def create_treasure(
         department=department,
         location_id=location_id,
         treasure_type=treasure_type,
+        mission_type=mission_type,
+        mission_content=mission_content,
         content=content,
         mission_answer=mission_answer,
         image_path=image_path,
@@ -89,7 +93,9 @@ async def verify_mission(
     # 퀴즈 미션
     if mission_type == "quiz":
         location = db.query(location_models.Location).filter(
-            location_models.Location.id == location_id
+            models.Treasure.location_id == location_id,
+            models.Treasure.is_claimed == False,
+            models.Treasure.status == "approved"
         ).first()
 
         answers = [a.strip() for a in location.mission_answer.split(",")]
@@ -155,7 +161,7 @@ def claim_treasure(location_id: int, student_id: str, db: Session = Depends(get_
         models.Treasure.status == "approved"
     ).all()
 
-    if not treasure:
+    if not treasures:
         return {"success": False, "message": "보물이 없어요!"}
 
     treasure = random.choice(treasures)
