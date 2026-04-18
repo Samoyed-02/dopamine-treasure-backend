@@ -12,15 +12,9 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-#allow_origins=[
-#    "http://localhost:3000",   # 박주원님 로컬 개발용
-#    "http://localhost:5173",   # Vite 쓰면 이 포트일 수도 있음
-#    "https://프론트배포주소.com"  # 나중에 추가
-#],
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 개발 중엔 전체 허용, 배포 전에 프론트 주소로 교체
+    allow_origins=["https://github.com/0601sunny-spec/Treasure-Island"],  # 개발 중엔 전체 허용, 배포 전에 프론트 주소로 교체
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
