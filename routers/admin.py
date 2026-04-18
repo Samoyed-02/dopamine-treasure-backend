@@ -11,6 +11,7 @@ import schemas.treasure as treasure_schemas
 from typing import Optional
 from sqlalchemy import func
 import models.attempt as attempt_models
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -135,14 +136,17 @@ def fix_treasure(treasure_id: int, request: treasure_schemas.TreasureUpdate, db:
 
     return {"success": True, "message": "수정 완료!"}
 
+class LoginRequest(BaseModel):
+    password: str
+
 @router.post("/admin/login")
-def admin_login(password: str, db: Session = Depends(get_db)):
+def admin_login(data: LoginRequest, db: Session = Depends(get_db)):
     admin_password = os.getenv("ADMIN_PASSWORD")
 
-    if password != admin_password:
+    if data.password != admin_password:
         return {"success": False, "message": "비밀번호가 틀렸어요!"}
     
-    return{"success": True, "message": "관리자 승인 완료!"}
+    return {"success": True, "message": "관리자 승인 완료!"}
     
 @router.get("/admin/claims")
 def admin_claims(db: Session = Depends(get_db)):
