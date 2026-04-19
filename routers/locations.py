@@ -11,8 +11,21 @@ router = APIRouter()
 @router.get("/locations")
 def get_locations(db: Session = Depends(get_db)):
     locations = db.query(models.Location).all()
-    return locations
-
+    
+    result = []
+    for l in locations:
+        treasure_count = db.query(treasure_models.Treasure).filter(
+            treasure_models.Treasure.location_id == l.id
+        ).count()
+        
+        result.append({
+            "id": l.id,
+            "name": l.name,
+            "treasure_count": treasure_count,
+            "max_count": 10
+        })
+    
+    return result
 # 특정 장소 조회
 @router.get("/locations/{location_id}")
 def get_location(location_id: int, db: Session = Depends(get_db)):

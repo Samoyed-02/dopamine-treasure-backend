@@ -14,7 +14,63 @@ import random
 router = APIRouter()
 
 # 보물 등록
- 
+@router.post("/treasures")
+async def create_treasure(
+    name: str,
+    student_id: str,
+    department: str,
+    location_id: int,
+    treasure_type: str,
+    mission_type: str,
+    mission_content: str,
+    content: Optional[str] = None,
+    mission_answer: Optional[str] = None,
+    db: Session = Depends(get_db),
+    image: UploadFile = File(None)
+):
+    import os
+    import uuid
+
+    # 해당 장소 보물 개수 체크
+    treasure_count = db.query(models.Treasure).filter(
+        models.Treasure.location_id == location_id
+    ).count()
+
+    if treasure_count >= 10:
+        return {"success": False, "message": "해당 장소는 보물이 가득 찼어요! 다른 장소를 선택해주세요."}
+
+    image_path = None
+    if treasure_type in ["gifticon", "meme"] and image and image.filename:
+        ext = os.path.splitext(image.filename)[1]
+        unique_filename = f"{uuid.uuid4()}{ext}"
+        image_path = f"uploads/{unique_filename}"
+        with open(image_path, "wb") as f:
+            f.write(await image.read())
+
+    status = "pending" if treasure_type == "gifticon" else "approved"
+
+    treasure = models.Treasure(
+        name=name,
+        student_id=student_id,
+        department=department,
+        location_id=location_id,
+        treasure_type=treasure_type,
+        mission_type=mission_type,
+        mission_content=mission_content,
+        content=content,
+        mission_answer=mission_answer,
+        image_path=image_path,
+        is_claimed=False,
+        status=status
+    )
+
+    db.add(treasure)
+    db.commit()
+    db.refresh(treasure)
+
+    return {"success": True, "message": "보물을 숨겼어요! 🎁"}
+
+
 # 미션 제출
 @router.post("/locations/{location_id}/verify")
 async def verify_mission(
@@ -29,7 +85,7 @@ async def verify_mission(
     db: Session = Depends(get_db),
     image: UploadFile = File(None)
 ):
-    # 1시간 제한 체크
+    # 30분 제한 체크
     one_hour_ago = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=0.5)
     recent_attempt = db.query(attempt_models.Attempt).filter(
         attempt_models.Attempt.student_id == student_id,
@@ -40,17 +96,20 @@ async def verify_mission(
     ).first()
 
     if recent_attempt:
-        return {"success": False, "message": "30분후에 다시 도전해보세요!"}
+        return {"success": False, "message": "30분 후에 다시 도전해보세요!"}
 
     # 퀴즈 미션
     if mission_type == "quiz":
-        location = db.query(location_models.Location).filter(
+        treasure = db.query(models.Treasure).filter(
             models.Treasure.location_id == location_id,
             models.Treasure.is_claimed == False,
             models.Treasure.status == "approved"
         ).first()
 
-        answers = [a.strip() for a in location.mission_answer.split(",")]
+        if not treasure:
+            return {"success": False, "message": "보물이 없어요!"}
+
+        answers = [a.strip() for a in treasure.mission_answer.split(",")]
         is_correct = answer.strip() in answers
 
         attempt = attempt_models.Attempt(
@@ -76,8 +135,8 @@ async def verify_mission(
     if mission_type == "photo" and image and image.filename:
         import os
         import uuid
-        ext = os.path.splitext(image.filename)[1]  # 확장자 추출
-        unique_filename = f"{uuid.uuid4()}{ext}"   # 고유 파일명 생성
+        ext = os.path.splitext(image.filename)[1]
+        unique_filename = f"{uuid.uuid4()}{ext}"
         image_path = f"uploads/{unique_filename}"
         with open(image_path, "wb") as f:
             f.write(await image.read())
@@ -99,8 +158,8 @@ async def verify_mission(
         db.commit()
 
         return {"success": True, "message": "사진이 제출됐어요! 관리자 승인 후 보물을 획득할 수 있어요 🎁"}
-    
-    return{"success": False, "message": "사진을 첨부해주세요!"}
+
+    return {"success": False, "message": "사진을 첨부해주세요!"}
 
 
 # 보물 획득
