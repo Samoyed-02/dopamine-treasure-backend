@@ -103,8 +103,11 @@ async def verify_mission(
             models.Treasure.status == "approved"
         ).first()
 
-        if not treasure:
+        if not treasure or not treasure.mission_answer:
             return {"success": False, "message": "보물이 없어요!"}
+
+        answers = [a.strip() for a in treasure.mission_answer.split(",")]
+        is_correct = answer.strip() in answers
 
         answers = [a.strip() for a in treasure.mission_answer.split(",")]
         is_correct = answer.strip() in answers
