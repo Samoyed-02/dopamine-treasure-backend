@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import Optional
 from database import get_db
@@ -16,22 +16,21 @@ router = APIRouter()
 # 보물 등록
 @router.post("/treasures")
 async def create_treasure(
-    name: str,
-    student_id: str,
-    department: str,
-    location_id: int,
-    treasure_type: str,
-    mission_type: str,
-    mission_content: str,
-    content: Optional[str] = None,
-    mission_answer: Optional[str] = None,
+    name: str = Form(...),          # Form(str) -> Form(...)
+    student_id: str = Form(...),
+    department: str = Form(...),
+    location_id: int = Form(...),
+    treasure_type: str = Form(...),
+    mission_type: str = Form(...),
+    mission_content: str = Form(...),
+    content: Optional[str] = Form(None),
+    mission_answer: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     image: UploadFile = File(None)
 ):
     import os
     import uuid
 
-    # 해당 장소 보물 개수 체크
     treasure_count = db.query(models.Treasure).filter(
         models.Treasure.location_id == location_id
     ).count()
@@ -75,17 +74,16 @@ async def create_treasure(
 @router.post("/locations/{location_id}/verify")
 async def verify_mission(
     location_id: int,
-    name: str,
-    student_id: str,
-    department: str,
-    mission_type: str,
-    phone: Optional[str] = None,
-    agreed: bool = False,
-    answer: Optional[str] = None,
+    name: str = Form(...),          # 쉼표 추가 + Form(...) 수정
+    student_id: str = Form(...),
+    department: str = Form(...),
+    mission_type: str = Form(...),
+    phone: Optional[str] = Form(None),   # Form 추가
+    agreed: bool = Form(False),          # Form 추가
+    answer: Optional[str] = Form(None),  # Form 추가
     db: Session = Depends(get_db),
     image: UploadFile = File(None)
 ):
-    # 30분 제한 체크
     one_hour_ago = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=0.5)
     recent_attempt = db.query(attempt_models.Attempt).filter(
         attempt_models.Attempt.student_id == student_id,
@@ -98,7 +96,6 @@ async def verify_mission(
     if recent_attempt:
         return {"success": False, "message": "30분 후에 다시 도전해보세요!"}
 
-    # 퀴즈 미션
     if mission_type == "quiz":
         treasure = db.query(models.Treasure).filter(
             models.Treasure.location_id == location_id,
@@ -131,7 +128,6 @@ async def verify_mission(
         else:
             return {"success": False, "message": "정답이 아니에요. 다시 도전해보세요!"}
 
-    # 사진 미션
     if mission_type == "photo" and image and image.filename:
         import os
         import uuid
@@ -164,7 +160,11 @@ async def verify_mission(
 
 # 보물 획득
 @router.post("/locations/{location_id}/claim")
-def claim_treasure(location_id: int, student_id: str, db: Session = Depends(get_db)):
+def claim_treasure(
+    location_id: int,
+    student_id: str = Form(...),    # Form 추가
+    db: Session = Depends(get_db)
+):
     treasures = db.query(models.Treasure).filter(
         models.Treasure.location_id == location_id,
         models.Treasure.is_claimed == False,
