@@ -8,6 +8,4 @@ class Location(Base):
 
     id = Column(Integer, primary_key = True, index=True)
     name = Column(String(100))
-    mission_content = Column(String(500))
-    mission_answer = Column(String(100))
-    mission_type = Column(String(20))  # "quiz" or "photo"
+  

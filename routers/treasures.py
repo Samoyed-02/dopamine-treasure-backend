@@ -14,55 +14,7 @@ import random
 router = APIRouter()
 
 # 보물 등록
-@router.post("/treasures")
-async def create_treasure(
-    name: str,
-    student_id: str,
-    department: str,
-    location_id: int,
-    treasure_type: str,
-    mission_type: str,
-    mission_content: str,
-    content: Optional[str] = None,
-    mission_answer: Optional[str] = None,
-    db: Session = Depends(get_db),
-    image: UploadFile = File(None)
-):
-    import os
-    import uuid
-
-    image_path = None
-    if treasure_type in ["gifticon", "meme"] and image and image.filename:
-        ext = os.path.splitext(image.filename)[1]
-        unique_filename = f"{uuid.uuid4()}{ext}"
-        image_path = f"uploads/{unique_filename}"
-        with open(image_path, "wb") as f:
-            f.write(await image.read())
-
-    # gifticon만 pending, 나머지는 바로 approved
-    status = "pending" if treasure_type == "gifticon" else "approved"
-
-    treasure = models.Treasure(
-        name=name,
-        student_id=student_id,
-        department=department,
-        location_id=location_id,
-        treasure_type=treasure_type,
-        mission_type=mission_type,
-        mission_content=mission_content,
-        content=content,
-        mission_answer=mission_answer,
-        image_path=image_path,
-        is_claimed=False,
-        status=status
-    )
-
-    db.add(treasure)
-    db.commit()
-    db.refresh(treasure)
-
-    return {"success": True, "message": "보물을 숨겼어요! 🎁"}
-
+ 
 # 미션 제출
 @router.post("/locations/{location_id}/verify")
 async def verify_mission(
@@ -78,7 +30,7 @@ async def verify_mission(
     image: UploadFile = File(None)
 ):
     # 1시간 제한 체크
-    one_hour_ago = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=1)
+    one_hour_ago = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=0.5)
     recent_attempt = db.query(attempt_models.Attempt).filter(
         attempt_models.Attempt.student_id == student_id,
         or_(attempt_models.Attempt.is_correct == True,
@@ -88,7 +40,7 @@ async def verify_mission(
     ).first()
 
     if recent_attempt:
-        return {"success": False, "message": "1시간 후에 다시 도전해보세요!"}
+        return {"success": False, "message": "30분후에 다시 도전해보세요!"}
 
     # 퀴즈 미션
     if mission_type == "quiz":
