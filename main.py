@@ -14,7 +14,10 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://0601sunny-spec.github.io"],  # 개발 중엔 전체 허용, 배포 전에 프론트 주소로 교체
+    allow_origins=[
+        "https://0601sunny-spec.github.io",
+        "http://127.0.0.1:5500",  
+        "http://localhost:5500", ],  # 개발 중엔 전체 허용, 배포 전에 프론트 주소로 교체
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
