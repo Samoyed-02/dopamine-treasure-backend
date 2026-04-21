@@ -74,13 +74,13 @@ async def create_treasure(
 @router.post("/locations/{location_id}/verify")
 async def verify_mission(
     location_id: int,
-    name: str = Form(...),          # 쉼표 추가 + Form(...) 수정
+    name: str = Form(...),          
     student_id: str = Form(...),
     department: str = Form(...),
     mission_type: str = Form(...),
-    phone: Optional[str] = Form(None),   # Form 추가
-    agreed: bool = Form(False),          # Form 추가
-    answer: Optional[str] = Form(None),  # Form 추가
+    phone: Optional[str] = Form(None),   
+    agreed: bool = Form(False),         
+    answer: Optional[str] = Form(None),  
     db: Session = Depends(get_db),
     image: UploadFile = File(None)
 ):
