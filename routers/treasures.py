@@ -46,7 +46,7 @@ async def create_treasure(
         with open(image_path, "wb") as f:
             f.write(await image.read())
 
-    status = "pending" if treasure_type == "gifticon" else "approved"
+    status = "pending" 
 
     treasure = models.Treasure(
         name=name,
