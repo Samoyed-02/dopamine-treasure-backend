@@ -17,6 +17,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://0601sunny-spec.github.io",
+        "https://samoyed-02.github.io",
         "http://127.0.0.1:5500",  
         "http://localhost:5500",
         "http://localhost:5173",   # ← Vite 로컬 개발 서버
