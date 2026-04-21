@@ -130,6 +130,7 @@ def fix_treasure(treasure_id: int, request: treasure_schemas.TreasureUpdate, db:
         return {"success": False, "message": "해당 보물이 없어요!"}
 
     treasure.content = request.content
+    treasure.status = request.status
 
     db.commit()
     db.refresh(treasure)
