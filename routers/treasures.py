@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from database import get_db
 from sqlalchemy import or_
+from pydantic import BaseModel
 import models.treasure as models
 import models.location as location_models
 import models.attempt as attempt_models
@@ -160,14 +161,17 @@ async def verify_mission(
 
     return {"success": False, "message": "사진을 첨부해주세요!"}
 
-
+class ClaimRequest(BaseModel):
+    student_id: str
 # 보물 획득
 @router.post("/locations/{location_id}/claim")
 def claim_treasure(
     location_id: int,
-    student_id: str = Form(...),    # Form 추가
+    request: ClaimRequest, # Form 추가
     db: Session = Depends(get_db)
 ):
+    student_id = request.student_id 
+    
     treasures = db.query(models.Treasure).filter(
         models.Treasure.location_id == location_id,
         models.Treasure.is_claimed == False,
