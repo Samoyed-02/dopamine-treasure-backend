@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from routers import locations, treasures, admin
+from fastapi.staticfiles import StaticFiles
 from database import engine, Base
 import models.location
 import models.attempt
@@ -24,6 +25,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")  # 추가
 
 app.include_router(locations.router)
 app.include_router(treasures.router)
