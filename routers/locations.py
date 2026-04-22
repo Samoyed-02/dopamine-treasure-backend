@@ -15,7 +15,9 @@ def get_locations(db: Session = Depends(get_db)):
     result = []
     for l in locations:
         treasure_count = db.query(treasure_models.Treasure).filter(
-            treasure_models.Treasure.location_id == l.id
+            treasure_models.Treasure.location_id == l.id,
+            treasure_models.Treasure.status == "approved",
+            treasure_models.Treasure.is_claimed == False
         ).count()
         
         result.append({
