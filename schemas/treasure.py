@@ -13,6 +13,7 @@ class TreasureResponse(BaseModel):
 class TreasureUpdate(BaseModel):
     content: Optional[str] = None
     status: Optional[str] = None
+    image_path: Optional[str] = None  # ← 추가
     
     class Config:
         from_attributes = True
