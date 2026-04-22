@@ -33,7 +33,8 @@ async def create_treasure(
     import uuid
 
     treasure_count = db.query(models.Treasure).filter(
-        models.Treasure.location_id == location_id
+        models.Treasure.location_id == location_id,
+        models.Treasure.status == 'approved'
     ).count()
 
     if treasure_count >= 10:
@@ -171,7 +172,7 @@ def claim_treasure(
     db: Session = Depends(get_db)
 ):
     student_id = request.student_id 
-    
+
     treasures = db.query(models.Treasure).filter(
         models.Treasure.location_id == location_id,
         models.Treasure.is_claimed == False,
