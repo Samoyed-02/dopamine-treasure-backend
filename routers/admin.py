@@ -141,6 +141,9 @@ def fix_treasure(treasure_id: int, request: treasure_schemas.TreasureUpdate, db:
 
     return {"success": True, "message": "수정 완료!"}
 
+class LoginRequest(BaseModel):
+    password: str
+
 @router.post("/admin/login")
 def admin_login(data: LoginRequest, db: Session = Depends(get_db)):
     admin_password = os.getenv("ADMIN_PASSWORD")
