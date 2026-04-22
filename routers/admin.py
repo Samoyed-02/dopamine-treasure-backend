@@ -129,16 +129,17 @@ def fix_treasure(treasure_id: int, request: treasure_schemas.TreasureUpdate, db:
     if not treasure:
         return {"success": False, "message": "해당 보물이 없어요!"}
 
-    treasure.content = request.content
-    treasure.status = request.status
+    if request.content is not None:
+        treasure.content = request.content
+    if request.status is not None:
+        treasure.status = request.status
+    if request.image_path is not None:
+        treasure.image_path = request.image_path
 
     db.commit()
     db.refresh(treasure)
 
     return {"success": True, "message": "수정 완료!"}
-
-class LoginRequest(BaseModel):
-    password: str
 
 @router.post("/admin/login")
 def admin_login(data: LoginRequest, db: Session = Depends(get_db)):
