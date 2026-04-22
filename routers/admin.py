@@ -72,20 +72,26 @@ def admin_attempts(db: Session = Depends(get_db)):
 
     result = []
     for a in attempts:
-        claimed_count = db.query(treasure_models.Treasure).filter(
-            treasure_models.Treasure.claimed_by == a.student_id
-        ).count()
+        # 해당 장소의 보물 정보도 같이 가져오기
+        treasure = db.query(treasure_models.Treasure).filter(
+            treasure_models.Treasure.location_id == a.location_id,
+            treasure_models.Treasure.is_claimed == False,
+            treasure_models.Treasure.status == "approved"
+        ).first()
 
         result.append({
             "id": a.id,
             "name": a.name,
             "student_id": a.student_id,
             "department": a.department,
-            "phone": a.phone,          # 추가
+            "phone": a.phone,
             "location_id": a.location_id,
             "image_path": a.image_path,
             "status": a.status,
-            "claimed_count": claimed_count  # 추가
+            # 보물 내용 추가
+            "treasure_type": treasure.treasure_type if treasure else None,
+            "treasure_content": treasure.content if treasure else None,
+            "treasure_image": treasure.image_path if treasure else None,
         })
 
     return {"attempts": result}
