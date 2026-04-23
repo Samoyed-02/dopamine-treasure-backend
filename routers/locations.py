@@ -15,20 +15,11 @@ def get_locations(db: Session = Depends(get_db)):
     
     result = []
     for l in locations:
-        # pending attempt가 있는 장소는 개수에서 제외
-        pending_attempt = db.query(attempt_models.Attempt).filter(
-            attempt_models.Attempt.location_id == l.id,
-            attempt_models.Attempt.status == "pending"
-        ).first()
-
-        if pending_attempt:
-            treasure_count = 0  # pending 중이면 0으로 표시
-        else:
-            treasure_count = db.query(treasure_models.Treasure).filter(
-                treasure_models.Treasure.location_id == l.id,
-                treasure_models.Treasure.status == "approved",
-                treasure_models.Treasure.is_claimed == False
-            ).count()
+        treasure_count = db.query(treasure_models.Treasure).filter(
+            treasure_models.Treasure.location_id == l.id,
+            treasure_models.Treasure.status == "approved",
+            treasure_models.Treasure.is_claimed == False
+        ).count()
         
         result.append({
             "id": l.id,
@@ -36,6 +27,8 @@ def get_locations(db: Session = Depends(get_db)):
             "treasure_count": treasure_count,
             "max_count": 10
         })
+    
+    return result
     
     return result
 # 특정 장소 조회
