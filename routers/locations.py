@@ -69,7 +69,7 @@ def get_location(location_id: int, student_id: str = None, db: Session = Depends
     treasure_models.Treasure.location_id == location_id,
     treasure_models.Treasure.is_claimed == False,
     treasure_models.Treasure.status == "approved",
-    treasure_models.Treasure.student_id == student_id
+    treasure_models.Treasure.student_id == str(student_id)
     ).first() if student_id else None
 
     return {
