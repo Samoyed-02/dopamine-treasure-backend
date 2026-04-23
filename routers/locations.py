@@ -45,12 +45,6 @@ def get_location(location_id: int, student_id: str = None, db: Session = Depends
         models.Location.id == location_id
     ).first()
 
-    # 사진 미션 pending 중인 보물은 제외
-    has_pending_photo = db.query(attempt_models.Attempt).filter(
-        attempt_models.Attempt.location_id == location_id,
-        attempt_models.Attempt.status == "pending"
-    ).first() is not None
-
     query = db.query(treasure_models.Treasure).filter(
         treasure_models.Treasure.location_id == location_id,
         treasure_models.Treasure.is_claimed == False,
@@ -59,10 +53,6 @@ def get_location(location_id: int, student_id: str = None, db: Session = Depends
 
     if student_id:
         query = query.filter(treasure_models.Treasure.student_id != student_id)
-
-    # 사진 미션 pending 중이면 퀴즈 미션만
-    if has_pending_photo:
-        query = query.filter(treasure_models.Treasure.mission_type != "photo")
 
     treasure = query.first()
 
