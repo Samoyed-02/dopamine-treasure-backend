@@ -12,6 +12,7 @@ from typing import Optional
 from sqlalchemy import func
 import models.attempt as attempt_models
 from pydantic import BaseModel
+import datetime
 
 router = APIRouter()
 
@@ -111,6 +112,17 @@ def approve_attempt(attempt_id: int, request: attempt_schemas.AttemptApprove, db
     attempt.status = request.status
     if request.status == "approved":
         attempt.is_correct = True
+
+        photo_treasure = db.query(treasure_models.Treasure).filter(
+            treasure_models.Treasure.location_id == attempt.location_id,
+            treasure_models.Treasure.mission_type == "photo",
+            treasure_models.Treausre.is_claimed == False,
+            treasure_models.Treasure.status == "approved"
+        ).first()
+        if photo_treasure:
+            photo_treasure.is_claimed = True
+            photo_treasure.claimed_by = attempt.student_id
+            photo_treasure.claimed_at = datetime.datetime.now(datetime.timezone.utc)
 
     db.commit()
     db.refresh(attempt)
