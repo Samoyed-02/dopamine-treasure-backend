@@ -15,11 +15,20 @@ def get_locations(db: Session = Depends(get_db)):
     
     result = []
     for l in locations:
-        treasure_count = db.query(treasure_models.Treasure).filter(
-            treasure_models.Treasure.location_id == l.id,
-            treasure_models.Treasure.status == "approved",
-            treasure_models.Treasure.is_claimed == False
-        ).count()
+        # pending attempt가 있는 장소는 개수에서 제외
+        pending_attempt = db.query(attempt_models.Attempt).filter(
+            attempt_models.Attempt.location_id == l.id,
+            attempt_models.Attempt.status == "pending"
+        ).first()
+
+        if pending_attempt:
+            treasure_count = 0  # pending 중이면 0으로 표시
+        else:
+            treasure_count = db.query(treasure_models.Treasure).filter(
+                treasure_models.Treasure.location_id == l.id,
+                treasure_models.Treasure.status == "approved",
+                treasure_models.Treasure.is_claimed == False
+            ).count()
         
         result.append({
             "id": l.id,
