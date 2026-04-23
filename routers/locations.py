@@ -45,31 +45,32 @@ def get_location(location_id: int, student_id: str = None, db: Session = Depends
         models.Location.id == location_id
     ).first()
 
-    # 해당 장소에 pending attempt가 있으면 보물 없는 것처럼 처리
-    pending_attempt = db.query(attempt_models.Attempt).filter(
+    # 사진 미션 pending 중인 보물은 제외
+    has_pending_photo = db.query(attempt_models.Attempt).filter(
         attempt_models.Attempt.location_id == location_id,
         attempt_models.Attempt.status == "pending"
-    ).first()
+    ).first() is not None
 
-    if pending_attempt:
-        treasure = None
-    else:
-        query = db.query(treasure_models.Treasure).filter(
-            treasure_models.Treasure.location_id == location_id,
-            treasure_models.Treasure.is_claimed == False,
-            treasure_models.Treasure.status == "approved"
-        )
+    query = db.query(treasure_models.Treasure).filter(
+        treasure_models.Treasure.location_id == location_id,
+        treasure_models.Treasure.is_claimed == False,
+        treasure_models.Treasure.status == "approved"
+    )
 
-        if student_id:
-            query = query.filter(treasure_models.Treasure.student_id != student_id)
+    if student_id:
+        query = query.filter(treasure_models.Treasure.student_id != student_id)
 
-        treasure = query.first()
+    # 사진 미션 pending 중이면 퀴즈 미션만
+    if has_pending_photo:
+        query = query.filter(treasure_models.Treasure.mission_type != "photo")
+
+    treasure = query.first()
 
     own_treasure = db.query(treasure_models.Treasure).filter(
-    treasure_models.Treasure.location_id == location_id,
-    treasure_models.Treasure.is_claimed == False,
-    treasure_models.Treasure.status == "approved",
-    treasure_models.Treasure.student_id == str(student_id)
+        treasure_models.Treasure.location_id == location_id,
+        treasure_models.Treasure.is_claimed == False,
+        treasure_models.Treasure.status == "approved",
+        treasure_models.Treasure.student_id == str(student_id)
     ).first() if student_id else None
 
     return {
@@ -77,10 +78,6 @@ def get_location(location_id: int, student_id: str = None, db: Session = Depends
         "name": location.name,
         "mission_type": treasure.mission_type if treasure else None,
         "mission_content": treasure.mission_content if treasure else None,
-        "treasure_count": db.query(treasure_models.Treasure).filter(
-            treasure_models.Treasure.location_id == location_id,
-            treasure_models.Treasure.is_claimed == False,
-            treasure_models.Treasure.status == "approved"
-        ).count(),
+        "treasure_count": query.count(),
         "is_own": own_treasure is not None
     }

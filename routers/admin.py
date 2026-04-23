@@ -73,12 +73,14 @@ def admin_attempts(db: Session = Depends(get_db)):
     result = []
     for a in attempts:
         # 해당 장소의 보물 정보도 같이 가져오기
+        
         treasure = db.query(treasure_models.Treasure).filter(
             treasure_models.Treasure.location_id == a.location_id,
             treasure_models.Treasure.is_claimed == False,
             treasure_models.Treasure.status == "approved"
         ).first()
 
+        
         result.append({
             "id": a.id,
             "name": a.name,
