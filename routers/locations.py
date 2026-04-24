@@ -62,14 +62,18 @@ def get_location(location_id: int, student_id: str = None, db: Session = Depends
     if has_pending:
         query = query.filter(treasure_models.Treasure.mission_type != "photo")
 
-    # 본인 보물 제외
+    # 본인 보물만 있는지 체크 (필터 전)
     if student_id:
+        all_treasures = query.all()
+        is_own_only = bool(all_treasures) and all(
+            t.student_id == str(student_id) for t in all_treasures
+        )
+        # 본인 보물 제외
         query = query.filter(treasure_models.Treasure.student_id != student_id)
+    else:
+        is_own_only = False
 
     treasure = query.first()
-
-    # 현재 보여주는 미션이 본인 것인지 직접 체크
-    is_own = (treasure.student_id == str(student_id)) if treasure and student_id else False
 
     return {
         "id": location.id,
@@ -77,5 +81,5 @@ def get_location(location_id: int, student_id: str = None, db: Session = Depends
         "mission_type": treasure.mission_type if treasure else None,
         "mission_content": treasure.mission_content if treasure else None,
         "treasure_count": query.count(),
-        "is_own": is_own
+        "is_own": is_own_only  # ✅ 본인 보물만 있을 때만 true
     }
