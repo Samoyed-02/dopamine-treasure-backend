@@ -116,7 +116,7 @@ def approve_attempt(attempt_id: int, request: attempt_schemas.AttemptApprove, db
         photo_treasure = db.query(treasure_models.Treasure).filter(
             treasure_models.Treasure.location_id == attempt.location_id,
             treasure_models.Treasure.mission_type == "photo",
-            treasure_models.Treausre.is_claimed == False,
+            treasure_models.Treasure.is_claimed == False,
             treasure_models.Treasure.status == "approved"
         ).first()
         if photo_treasure:
