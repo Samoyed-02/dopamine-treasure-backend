@@ -11,35 +11,20 @@ router = APIRouter()
 @router.get("/locations")
 def get_locations(db: Session = Depends(get_db)):
     locations = db.query(models.Location).all()
-    
     result = []
     for l in locations:
-        # pending attempt가 있는 photo 보물 ID 제외
-        pending_treasure_ids = [
-            a.location_id for a in db.query(attempt_models.Attempt).filter(
-                attempt_models.Attempt.location_id == l.id,
-                attempt_models.Attempt.status == "pending"
-            ).all()
-        ]
-
-        query = db.query(treasure_models.Treasure).filter(
+        count = db.query(treasure_models.Treasure).filter(
             treasure_models.Treasure.location_id == l.id,
             treasure_models.Treasure.status == "approved",
             treasure_models.Treasure.is_claimed == False
-        )
-
-        if pending_treasure_ids:
-            query = query.filter(
-                treasure_models.Treasure.mission_type != "photo"
-            )
+        ).count()
 
         result.append({
             "id": l.id,
             "name": l.name,
-            "treasure_count": query.count(),
+            "treasure_count": count,
             "max_count": 10
         })
-    
     return result
 
 # 특정 장소 조회
@@ -49,23 +34,27 @@ def get_location(location_id: int, student_id: str = None, db: Session = Depends
         models.Location.id == location_id
     ).first()
 
-    # pending attempt가 있으면 photo 미션 제외
-    has_pending = db.query(attempt_models.Attempt).filter(
-        attempt_models.Attempt.location_id == location_id,
-        attempt_models.Attempt.status == "pending"
-    ).first() is not None
-
+    # 기본 보물 쿼리
     query = db.query(treasure_models.Treasure).filter(
         treasure_models.Treasure.location_id == location_id,
         treasure_models.Treasure.is_claimed == False,
         treasure_models.Treasure.status == "approved"
     )
 
-    if has_pending:
-        query = query.filter(treasure_models.Treasure.mission_type != "photo")
-
     if student_id:
+        # 본인 보물 제외
         query = query.filter(treasure_models.Treasure.student_id != student_id)
+
+        # 본인이 pending 중이면 photo 미션 접근 차단
+        # 거절(rejected)이면 다시 접근 가능, 승인(approved)이면 30분 제한은 verify에서 처리
+        my_pending = db.query(attempt_models.Attempt).filter(
+            attempt_models.Attempt.location_id == location_id,
+            attempt_models.Attempt.student_id == student_id,
+            attempt_models.Attempt.status == "pending"
+        ).first()
+
+        if my_pending:
+            query = query.filter(treasure_models.Treasure.mission_type != "photo")
 
     treasure = query.first()
 
