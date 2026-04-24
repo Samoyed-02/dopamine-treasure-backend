@@ -2,22 +2,22 @@ from fastapi import APIRouter, Depends, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import Optional
 from database import get_db
-from sqlalchemy import or_
 from pydantic import BaseModel
 import models.treasure as models
 import models.location as location_models
 import models.attempt as attempt_models
-import schemas.treasure as treasure_schemas
-import schemas.attempt as attempt_schemas
 import datetime
 import random
+import os
+import uuid
 
 router = APIRouter()
 
-# 보물 등록
+
+# ─── 보물 등록 ─────────────────────────────────────────────────
 @router.post("/treasures")
 async def create_treasure(
-    name: str = Form(...),          # Form(str) -> Form(...)
+    name: str = Form(...),
     student_id: str = Form(...),
     department: str = Form(...),
     location_id: int = Form(...),
@@ -29,12 +29,9 @@ async def create_treasure(
     db: Session = Depends(get_db),
     image: UploadFile = File(None)
 ):
-    import os
-    import uuid
-
     treasure_count = db.query(models.Treasure).filter(
         models.Treasure.location_id == location_id,
-        models.Treasure.status == 'approved'
+        models.Treasure.status == "approved"
     ).count()
 
     if treasure_count >= 10:
@@ -43,12 +40,9 @@ async def create_treasure(
     image_path = None
     if treasure_type in ["gifticon", "meme"] and image and image.filename:
         ext = os.path.splitext(image.filename)[1]
-        unique_filename = f"{uuid.uuid4()}{ext}"
-        image_path = f"uploads/{unique_filename}"
+        image_path = f"uploads/{uuid.uuid4()}{ext}"
         with open(image_path, "wb") as f:
             f.write(await image.read())
-
-    status = "pending" 
 
     treasure = models.Treasure(
         name=name,
@@ -62,7 +56,7 @@ async def create_treasure(
         mission_answer=mission_answer,
         image_path=image_path,
         is_claimed=False,
-        status=status
+        status="pending"
     )
 
     db.add(treasure)
@@ -72,32 +66,41 @@ async def create_treasure(
     return {"success": True, "message": "보물을 숨겼어요! 🎁"}
 
 
-# 미션 제출
+# ─── 미션 제출 ─────────────────────────────────────────────────
 @router.post("/locations/{location_id}/verify")
 async def verify_mission(
     location_id: int,
-    name: str = Form(...),          
+    name: str = Form(...),
     student_id: str = Form(...),
     department: str = Form(...),
     mission_type: str = Form(...),
-    phone: Optional[str] = Form(None),   
-    agreed: bool = Form(False),         
-    answer: Optional[str] = Form(None),  
+    phone: Optional[str] = Form(None),
+    agreed: bool = Form(False),
+    answer: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     image: UploadFile = File(None)
 ):
+    # pending 중이면 시간 상관없이 차단
+    pending_attempt = db.query(attempt_models.Attempt).filter(
+        attempt_models.Attempt.student_id == student_id,
+        attempt_models.Attempt.status == "pending"
+    ).first()
+
+    if pending_attempt:
+        return {"success": False, "message": "사진 미션 승인 대기 중이에요!"}
+
+    # 승인된 경우 30분 제한
     one_hour_ago = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=0.5)
     recent_attempt = db.query(attempt_models.Attempt).filter(
         attempt_models.Attempt.student_id == student_id,
-        or_(attempt_models.Attempt.is_correct == True,
-            attempt_models.Attempt.status == "pending"
-        ),
+        attempt_models.Attempt.is_correct == True,
         attempt_models.Attempt.attempt_time >= one_hour_ago
     ).first()
 
     if recent_attempt:
         return {"success": False, "message": "30분 후에 다시 도전해보세요!"}
 
+    # ─── 퀴즈 미션 ───
     if mission_type == "quiz":
         treasure = db.query(models.Treasure).filter(
             models.Treasure.location_id == location_id,
@@ -106,14 +109,10 @@ async def verify_mission(
             models.Treasure.mission_type == "quiz",
             models.Treasure.student_id != student_id,
             models.Treasure.mission_answer != None
-            
         ).first()
 
-        if not treasure or not treasure.mission_answer:
+        if not treasure:
             return {"success": False, "message": "보물이 없어요!"}
-
-        answers = [a.strip() for a in treasure.mission_answer.split(",")]
-        is_correct = answer.strip() in answers
 
         answers = [a.strip() for a in treasure.mission_answer.split(",")]
         is_correct = answer.strip() in answers
@@ -137,23 +136,20 @@ async def verify_mission(
         else:
             return {"success": False, "message": "정답이 아니에요. 다시 도전해보세요!"}
 
+    # ─── 사진 미션 ───
     if mission_type == "photo" and image and image.filename:
-
         available = db.query(models.Treasure).filter(
-        models.Treasure.location_id == location_id,
-        models.Treasure.is_claimed == False,
-        models.Treasure.status == "approved",
-        models.Treasure.student_id != student_id  # 본인 보물 제외
+            models.Treasure.location_id == location_id,
+            models.Treasure.is_claimed == False,
+            models.Treasure.status == "approved",
+            models.Treasure.student_id != student_id
         ).first()
 
         if not available:
             return {"success": False, "message": "획득 가능한 보물이 없어요!"}
-        
-        import os
-        import uuid
+
         ext = os.path.splitext(image.filename)[1]
-        unique_filename = f"{uuid.uuid4()}{ext}"
-        image_path = f"uploads/{unique_filename}"
+        image_path = f"uploads/{uuid.uuid4()}{ext}"
         with open(image_path, "wb") as f:
             f.write(await image.read())
 
@@ -177,16 +173,18 @@ async def verify_mission(
 
     return {"success": False, "message": "사진을 첨부해주세요!"}
 
+
+# ─── 보물 획득 ─────────────────────────────────────────────────
 class ClaimRequest(BaseModel):
     student_id: str
-# 보물 획득
+
 @router.post("/locations/{location_id}/claim")
 def claim_treasure(
     location_id: int,
-    request: ClaimRequest, # Form 추가
+    request: ClaimRequest,
     db: Session = Depends(get_db)
 ):
-    student_id = request.student_id 
+    student_id = request.student_id
 
     treasures = db.query(models.Treasure).filter(
         models.Treasure.location_id == location_id,
@@ -199,7 +197,6 @@ def claim_treasure(
         return {"success": False, "message": "보물이 없어요!"}
 
     treasure = random.choice(treasures)
-
     treasure.is_claimed = True
     treasure.claimed_by = student_id
     treasure.claimed_at = datetime.datetime.now(datetime.timezone.utc)
@@ -215,6 +212,8 @@ def claim_treasure(
         }
     }
 
+
+# ─── 사진 미션 pending 여부 확인 ───────────────────────────────
 @router.get("/my-pending")
 def my_pending(student_id: str, db: Session = Depends(get_db)):
     pending = db.query(attempt_models.Attempt).filter(
