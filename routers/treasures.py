@@ -102,7 +102,9 @@ async def verify_mission(
         treasure = db.query(models.Treasure).filter(
             models.Treasure.location_id == location_id,
             models.Treasure.is_claimed == False,
-            models.Treasure.status == "approved"
+            models.Treasure.status == "approved",
+            models.Treasure.student_id != student_id 
+            
         ).first()
 
         if not treasure or not treasure.mission_answer:
