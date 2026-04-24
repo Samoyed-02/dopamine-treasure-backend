@@ -103,7 +103,9 @@ async def verify_mission(
             models.Treasure.location_id == location_id,
             models.Treasure.is_claimed == False,
             models.Treasure.status == "approved",
-            models.Treasure.student_id != student_id 
+            models.Treasure.mission_type == "quiz",
+            models.Treasure.student_id != student_id,
+            models.Treasure.mission_answer != None
             
         ).first()
 
