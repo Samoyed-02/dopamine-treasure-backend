@@ -214,3 +214,11 @@ def claim_treasure(
             "image_path": treasure.image_path
         }
     }
+
+@router.get("/my-pending")
+def my_pending(student_id: str, db: Session = Depends(get_db)):
+    pending = db.query(attempt_models.Attempt).filter(
+        attempt_models.Attempt.student_id == student_id,
+        attempt_models.Attempt.status == "pending"
+    ).first()
+    return {"pending": pending is not None}
