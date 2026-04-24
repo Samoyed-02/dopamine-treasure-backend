@@ -4,7 +4,6 @@ from typing import Optional
 from database import get_db
 from pydantic import BaseModel
 import models.treasure as models
-import models.location as location_models
 import models.attempt as attempt_models
 import datetime
 import random
@@ -80,7 +79,7 @@ async def verify_mission(
     db: Session = Depends(get_db),
     image: UploadFile = File(None)
 ):
-    # pending 중이면 시간 상관없이 차단
+    # 사진 미션 pending 중이면 차단
     pending_attempt = db.query(attempt_models.Attempt).filter(
         attempt_models.Attempt.student_id == student_id,
         attempt_models.Attempt.status == "pending"
@@ -89,16 +88,16 @@ async def verify_mission(
     if pending_attempt:
         return {"success": False, "message": "사진 미션 승인 대기 중이에요!"}
 
-    # 승인된 경우 30분 제한
-    one_hour_ago = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=0.5)
-    print(f"현재 UTC: {datetime.datetime.now(datetime.timezone.utc)}")
-    print(f"30분 전: {one_hour_ago}")
+    # 30분 제한 (timezone 제거 후 비교)
+    thirty_min_ago = (
+        datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=0.5)
+    ).replace(tzinfo=None)
+
     recent_attempt = db.query(attempt_models.Attempt).filter(
         attempt_models.Attempt.student_id == student_id,
         attempt_models.Attempt.is_correct == True,
-        attempt_models.Attempt.attempt_time >= one_hour_ago
+        attempt_models.Attempt.attempt_time >= thirty_min_ago
     ).first()
-    print(f"recent_attempt: {recent_attempt}")
 
     if recent_attempt:
         return {"success": False, "message": "30분 후에 다시 도전해보세요!"}
@@ -180,6 +179,7 @@ async def verify_mission(
 # ─── 보물 획득 ─────────────────────────────────────────────────
 class ClaimRequest(BaseModel):
     student_id: str
+
 
 @router.post("/locations/{location_id}/claim")
 def claim_treasure(
