@@ -91,11 +91,14 @@ async def verify_mission(
 
     # 승인된 경우 30분 제한
     one_hour_ago = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=0.5)
+    print(f"현재 UTC: {datetime.datetime.now(datetime.timezone.utc)}")
+    print(f"30분 전: {one_hour_ago}")
     recent_attempt = db.query(attempt_models.Attempt).filter(
         attempt_models.Attempt.student_id == student_id,
         attempt_models.Attempt.is_correct == True,
         attempt_models.Attempt.attempt_time >= one_hour_ago
     ).first()
+    print(f"recent_attempt: {recent_attempt}")
 
     if recent_attempt:
         return {"success": False, "message": "30분 후에 다시 도전해보세요!"}
