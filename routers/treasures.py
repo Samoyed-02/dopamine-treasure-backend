@@ -223,4 +223,16 @@ def my_pending(student_id: str, db: Session = Depends(get_db)):
         attempt_models.Attempt.student_id == student_id,
         attempt_models.Attempt.status == "pending"
     ).first()
-    return {"pending": pending is not None}
+
+    # 30분 제한 여부도 같이 반환
+    thirty_min_ago = (
+        datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=0.5)
+    ).replace(tzinfo=None)
+
+    limited = db.query(attempt_models.Attempt).filter(
+        attempt_models.Attempt.student_id == student_id,
+        attempt_models.Attempt.is_correct == True,
+        attempt_models.Attempt.attempt_time >= thirty_min_ago
+    ).first() is not None
+
+    return {"pending": pending is not None, "limited": limited}
