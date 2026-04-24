@@ -134,6 +134,17 @@ async def verify_mission(
             return {"success": False, "message": "정답이 아니에요. 다시 도전해보세요!"}
 
     if mission_type == "photo" and image and image.filename:
+
+        available = db.query(models.Treasure).filter(
+        models.Treasure.location_id == location_id,
+        models.Treasure.is_claimed == False,
+        models.Treasure.status == "approved",
+        models.Treasure.student_id != student_id  # 본인 보물 제외
+        ).first()
+
+        if not available:
+            return {"success": False, "message": "획득 가능한 보물이 없어요!"}
+        
         import os
         import uuid
         ext = os.path.splitext(image.filename)[1]
