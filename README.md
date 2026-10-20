@@ -14,7 +14,7 @@
 | 개발 기간 | 2026년 4월 (6일) |
 | 팀 구성 | PM/기획 1명, 백엔드 1명, 프론트엔드 1명, QA 보조 1명 |
 | 담당 | 백엔드 전체 |
-| 배포 URL | https://dopamine-treasure-backend-production.up.railway.app |
+| 배포 URL(현재: 종료)| https://dopamine-treasure-backend-production.up.railway.app |
 
 ---
 
